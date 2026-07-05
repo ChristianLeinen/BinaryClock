@@ -40,10 +40,7 @@ namespace BinaryClock
             InitializeComponent();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            this.ChangeLayout(this.displayMode, this.fontSize, this.isVertical);
-        }
+        private void Form1_Load(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, this.fontSize, this.isVertical);
 
         private void ChangeLayout(DisplayMode displayMode, FontSize fontSize, bool isVertical)
         {
@@ -206,11 +203,6 @@ namespace BinaryClock
         {
             this.Capture = false;
         }
-
-        private void Form1_MouseCaptureChanged(object sender, EventArgs e)
-        {
-            Debug.WriteLine("Form1_MouseCaptureChanged");
-        }
         #endregion
 
         #region Menu stuff
@@ -248,12 +240,14 @@ namespace BinaryClock
 
         private void largeToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, FontSize.Large, this.isVertical);
 
-        private void closeToolStripMenuItem_Click(object sender, EventArgs e) => this.Close();
 
         // Layout
         private void horizontalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, this.fontSize, false);
 
         private void verticalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, this.fontSize, true);
+
+        // General
+        private void closeToolStripMenuItem_Click(object sender, EventArgs e) => this.Close();
         #endregion
     }
 }

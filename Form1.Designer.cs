@@ -64,7 +64,6 @@
             hours.TabIndex = 0;
             hours.Text = "●○ ●○● h";
             hours.TextAlign = ContentAlignment.TopRight;
-            hours.MouseCaptureChanged += Form1_MouseCaptureChanged;
             hours.MouseDown += Form1_MouseDown;
             hours.MouseMove += Form1_MouseMove;
             hours.MouseUp += Form1_MouseUp;
@@ -236,7 +235,6 @@
             Text = "Binary Clock";
             TopMost = true;
             Load += Form1_Load;
-            MouseCaptureChanged += Form1_MouseCaptureChanged;
             MouseDown += Form1_MouseDown;
             MouseMove += Form1_MouseMove;
             MouseUp += Form1_MouseUp;
