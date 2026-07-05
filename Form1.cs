@@ -5,22 +5,35 @@ namespace BinaryClock
 {
     public partial class Form1 : Form
     {
-        internal enum TimeComp
+        #region Enums
+        internal enum DisplayMode
         {
-            Hour,
-            Minute,
-            Second
-        };
+            Bin,
+            Oct,
+            Dec,
+            Hex
+        }
 
-        internal enum FontSize : int
+        internal enum FontSize
         {
             Small = 12,
             Medium = 18,
             Large = 24
         }
 
-        private int fontSize = (int)FontSize.Medium;
+        internal enum TimeComp
+        {
+            Hour,
+            Minute,
+            Second
+        };
+        #endregion
+
+        #region Vars/Properties
+        private DisplayMode displayMode = DisplayMode.Bin;
+        private FontSize fontSize = FontSize.Medium;
         private bool isVertical;
+        #endregion
 
         public Form1()
         {
@@ -29,11 +42,12 @@ namespace BinaryClock
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            this.ChangeLayout(this.isVertical, this.fontSize);
+            this.ChangeLayout(this.displayMode, this.fontSize, this.isVertical);
         }
 
-        private void ChangeLayout(bool isVertical, int fontSize)
+        private void ChangeLayout(DisplayMode displayMode, FontSize fontSize, bool isVertical)
         {
+            this.displayMode = displayMode;
             this.isVertical = isVertical;
             this.fontSize = fontSize;
             this.UpdateLayout();
@@ -44,8 +58,9 @@ namespace BinaryClock
         {
             // measure required size for the contents of one label
             using var gfx = Graphics.FromHwnd(this.Handle);
-            using var font = new Font(this.Font.FontFamily, this.fontSize, FontStyle.Bold);
-            var size = gfx.MeasureString(" 00 0000 0", font).ToSize();
+            using var font = new Font(this.Font.FontFamily, (int)this.fontSize, FontStyle.Bold);
+            var measureString = (this.displayMode == DisplayMode.Bin ? " 00 0000 0" : " 00 0");
+            var size = gfx.MeasureString(measureString, font).ToSize();
 
             // resize labels + fonts
             this.hours.Font = this.minutes.Font = this.seconds.Font = font;
@@ -80,41 +95,62 @@ namespace BinaryClock
             }
         }
 
-        private static string FormatTime(DateTime time, TimeComp timeComp)
+        private static string FormatTime(DateTime time, TimeComp timeComp, DisplayMode displayMode)
         {
+            // 1. pick time component (h/m/s)
             var value = 0;
-            var digits = 0;
             switch (timeComp)
             {
                 case TimeComp.Hour:
                     value = time.Hour;
-                    digits = 5;
                     break;
                 case TimeComp.Minute:
                     value = time.Minute;
-                    digits = 6;
                     break;
                 case TimeComp.Second:
                     value = time.Second;
-                    digits = 6;
                     break;
                 default:
                     throw new ArgumentException($"unknown Time component: {timeComp}", nameof(timeComp));
             }
 
+            // 2. format number, according to display mode
             var result = new StringBuilder(16);
-            // run through bits
-            while (digits-- > 0)
+            switch (displayMode)
             {
-                var pos = 0x01 << digits;
-                // space out nibbles
-                if (digits == 3)
-                {
-                    result.Append(' ');
-                }
-                result.Append((value & pos) > 0 ? '●' : '○');
+                case DisplayMode.Bin:
+                    {
+                        var digits = (timeComp == TimeComp.Hour ? 5 : 6);
+                        // run through bits
+                        while (digits-- > 0)
+                        {
+                            var pos = 0x01 << digits;
+                            // space out nibbles
+                            if (digits == 3)
+                            {
+                                result.Append(' ');
+                            }
+                            result.Append((value & pos) > 0 ? '●' : '○');
+                        }
+                    }
+                    break;
+                case DisplayMode.Oct:
+                    {
+                        var octal = value / 8 * 10 + value % 8;
+                        result.Append(octal.ToString("D2"));
+                    }
+                    break;
+                case DisplayMode.Dec:
+                    result.Append(value.ToString("D2"));
+                    break;
+                case DisplayMode.Hex:
+                    result.Append(value.ToString("X2"));
+                    break;
+                default:
+                    break;
             }
 
+            // 3. add h/m/s identifier
             switch (timeComp)
             {
                 case TimeComp.Hour:
@@ -133,9 +169,9 @@ namespace BinaryClock
         private void timer1_Tick(object sender, EventArgs e)
         {
             var time = DateTime.Now;
-            this.hours.Text = FormatTime(time, TimeComp.Hour);
-            this.minutes.Text = FormatTime(time, TimeComp.Minute);
-            this.seconds.Text = FormatTime(time, TimeComp.Second);
+            this.hours.Text = FormatTime(time, TimeComp.Hour, this.displayMode);
+            this.minutes.Text = FormatTime(time, TimeComp.Minute, this.displayMode);
+            this.seconds.Text = FormatTime(time, TimeComp.Second, this.displayMode);
         }
 
         #region Mouse stuff
@@ -180,25 +216,44 @@ namespace BinaryClock
         #region Menu stuff
         private void UpdateMenuChecks()
         {
+            // DisplayMode
+            this.binaryToolStripMenuItem.Checked = this.displayMode == DisplayMode.Bin;
+            this.octalToolStripMenuItem.Checked = this.displayMode == DisplayMode.Oct;
+            this.decimalToolStripMenuItem.Checked = this.displayMode == DisplayMode.Dec;
+            this.hexadecimalToolStripMenuItem.Checked = this.displayMode == DisplayMode.Hex;
+
+            // FontSize
+            this.smallToolStripMenuItem.Checked = this.fontSize == FontSize.Small;
+            this.mediumToolStripMenuItem.Checked = this.fontSize == FontSize.Medium;
+            this.largeToolStripMenuItem.Checked = this.fontSize == FontSize.Large;
+
+            // Layout
             this.horizontalToolStripMenuItem.Checked = !this.isVertical;
             this.verticalToolStripMenuItem.Checked = this.isVertical;
-
-            this.smallToolStripMenuItem.Checked = this.fontSize == (int)FontSize.Small;
-            this.mediumToolStripMenuItem.Checked = this.fontSize == (int)FontSize.Medium;
-            this.largeToolStripMenuItem.Checked = this.fontSize == (int)FontSize.Large;
         }
 
-        private void horizontalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(false, this.fontSize);
+        // DisplayMode
+        private void binaryToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(DisplayMode.Bin, this.fontSize, this.isVertical);
 
-        private void verticalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(true, this.fontSize);
+        private void octalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(DisplayMode.Oct, this.fontSize, this.isVertical);
 
-        private void smallToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.isVertical, (int)FontSize.Small);
+        private void decimalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(DisplayMode.Dec, this.fontSize, this.isVertical);
 
-        private void mediumToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.isVertical, (int)FontSize.Medium);
+        private void hexadecimalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(DisplayMode.Hex, this.fontSize, this.isVertical);
 
-        private void largeToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.isVertical, (int)FontSize.Large);
+        // FontSize
+        private void smallToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, FontSize.Small, this.isVertical);
+
+        private void mediumToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, FontSize.Medium, this.isVertical);
+
+        private void largeToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, FontSize.Large, this.isVertical);
 
         private void closeToolStripMenuItem_Click(object sender, EventArgs e) => this.Close();
+
+        // Layout
+        private void horizontalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, this.fontSize, false);
+
+        private void verticalToolStripMenuItem_Click(object sender, EventArgs e) => this.ChangeLayout(this.displayMode, this.fontSize, true);
         #endregion
     }
 }
